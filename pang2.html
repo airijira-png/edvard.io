@@ -64,6 +64,16 @@
   #snapBtn { background: #22c55e; }
   #snapBtn:hover { background: #16a34a; }
   .status { margin-top: 12px; font-size: 0.85rem; color: #94a3b8; text-align: center; }
+  .config { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+  .config input {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #f1f5f9;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    width: 220px;
+  }
   canvas { display: none; }
   #snapshot {
     display: none;
@@ -87,7 +97,12 @@
   <button id="startBtn">เปิดกล้อง</button>
   <button id="stopBtn" disabled>ปิดกล้อง</button>
   <button id="switchBtn" disabled>สลับกล้อง</button>
-  <button id="snapBtn" disabled>ถ่ายภาพ</button>
+  <button id="snapBtn" disabled>ถ่ายภาพ &amp; ส่งไป UNO Q</button>
+</div>
+
+<div class="config">
+  <label for="uno-ip" style="font-size:0.85rem;color:#94a3b8;">IP UNO Q:</label>
+  <input type="text" id="uno-ip" placeholder="เช่น 192.168.1.50" value="192.168.1.50">
 </div>
 
 <div class="status" id="status"></div>
@@ -105,9 +120,11 @@ const snapBtn = document.getElementById('snapBtn');
 const statusEl = document.getElementById('status');
 const canvas = document.getElementById('canvas');
 const snapshot = document.getElementById('snapshot');
+const unoIpInput = document.getElementById('uno-ip');
 
 let currentStream = null;
 let facingMode = 'user'; // 'user' = กล้องหน้า, 'environment' = กล้องหลัง
+let lastBlob = null; // เก็บ blob ของภาพล่าสุดไว้ส่ง
 
 async function startCamera() {
   statusEl.textContent = 'กำลังขอสิทธิ์เข้าถึงกล้อง...';
@@ -163,8 +180,8 @@ function switchCamera() {
   startCamera();
 }
 
-function takeSnapshot() {
-  if (!currentStream) return;
+function captureBlob() {
+  // ถ่ายภาพจาก video ปัจจุบัน คืนค่าเป็น Promise<Blob>
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
@@ -173,9 +190,31 @@ function takeSnapshot() {
     ctx.scale(-1, 1);
   }
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  snapshot.src = canvas.toDataURL('image/png');
+  snapshot.src = canvas.toDataURL('image/jpeg', 0.85);
   snapshot.style.display = 'block';
-  statusEl.textContent = 'ถ่ายภาพแล้ว';
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.85);
+  });
+}
+
+async function takeSnapshotAndSend() {
+  if (!currentStream) return;
+
+  const ip = unoIpInput.value.trim();
+  if (!ip) {
+    statusEl.textContent = 'กรุณากรอก IP ของ UNO Q ก่อนถ่ายภาพ';
+    return;
+  }
+
+  snapBtn.disabled = true;
+  statusEl.textContent = 'กำลังถ่ายภาพ...';
+
+  const blob = await captureBlob();
+  lastBlob = blob;
+
+  statusEl.textContent = 'ถ่ายภาพแล้ว กำลังส่งไป UNO Q...';
+
   try {
     const res = await fetch(`http://${ip}:5000/upload`, {
       method: 'POST',
@@ -199,7 +238,7 @@ function takeSnapshot() {
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
 switchBtn.addEventListener('click', switchCamera);
-snapBtn.addEventListener('click', takeSnapshot);
+snapBtn.addEventListener('click', takeSnapshotAndSend);
 
 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
   statusEl.textContent = 'เบราว์เซอร์นี้ไม่รองรับการเข้าถึงกล้อง';
