@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camara</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #f1f5f9;
+    padding: 20px;
+  }
+  h1 { font-size: 1.4rem; margin-bottom: 16px; }
+  .video-wrap {
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 4/3;
+    background: #1e293b;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+  .placeholder { color: #64748b; font-size: 0.95rem; text-align: center; padding: 20px; }
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button:hover { background: #2563eb; }
+  button:disabled { background: #475569; cursor: not-allowed; }
+  #stopBtn { background: #ef4444; }
+  #stopBtn:hover { background: #dc2626; }
+  #switchBtn { background: #64748b; }
+  #switchBtn:hover { background: #475569; }
+  #snapBtn { background: #22c55e; }
+  #snapBtn:hover { background: #16a34a; }
+  .status { margin-top: 12px; font-size: 0.85rem; color: #94a3b8; text-align: center; }
+  canvas { display: none; }
+  #snapshot {
+    display: none;
+    margin-top: 16px;
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+</style>
+</head>
+<body>
+
+<h1>📷 เปิดกล้อง</h1>
+
+<div class="video-wrap">
+  <video id="video" autoplay playsinline></video>
+  <div id="placeholder" class="placeholder">กดปุ่ม "เปิดกล้อง" เพื่อเริ่มใช้งาน</div>
+</div>
+
+<div class="controls">
+  <button id="startBtn">เปิดกล้อง</button>
+  <button id="stopBtn" disabled>ปิดกล้อง</button>
+  <button id="switchBtn" disabled>สลับกล้อง</button>
+  <button id="snapBtn" disabled>ถ่ายภาพ</button>
+</div>
+
+<div class="status" id="status"></div>
+
+<canvas id="canvas"></canvas>
+<img id="snapshot" alt="ภาพที่ถ่าย">
+
+<script>
+const video = document.getElementById('video');
+const placeholder = document.getElementById('placeholder');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const switchBtn = document.getElementById('switchBtn');
+const snapBtn = document.getElementById('snapBtn');
+const statusEl = document.getElementById('status');
+const canvas = document.getElementById('canvas');
+const snapshot = document.getElementById('snapshot');
+
+let currentStream = null;
+let facingMode = 'user'; // 'user' = กล้องหน้า, 'environment' = กล้องหลัง
+
+async function startCamera() {
+  statusEl.textContent = 'กำลังขอสิทธิ์เข้าถึงกล้อง...';
+  try {
+    if (currentStream) {
+      currentStream.getTracks().forEach(t => t.stop());
+    }
+    const constraints = {
+      video: { facingMode: facingMode },
+      audio: false
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    currentStream = stream;
+    video.srcObject = stream;
+    video.style.display = 'block';
+    placeholder.style.display = 'none';
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    switchBtn.disabled = false;
+    snapBtn.disabled = false;
+    statusEl.textContent = 'เปิดกล้องสำเร็จ';
+  } catch (err) {
+    console.error(err);
+    let msg = 'เปิดกล้องไม่สำเร็จ: ';
+    if (err.name === 'NotAllowedError') {
+      msg += 'ผู้ใช้ไม่อนุญาตให้เข้าถึงกล้อง (กรุณาอนุญาตสิทธิ์ในเบราว์เซอร์)';
+    } else if (err.name === 'NotFoundError') {
+      msg += 'ไม่พบอุปกรณ์กล้อง';
+    } else {
+      msg += err.message;
+    }
+    statusEl.textContent = msg;
+  }
+}
+
+function stopCamera() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(t => t.stop());
+    currentStream = null;
+  }
+  video.srcObject = null;
+  video.style.display = 'none';
+  placeholder.style.display = 'block';
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  switchBtn.disabled = true;
+  snapBtn.disabled = true;
+  statusEl.textContent = 'ปิดกล้องแล้ว';
+}
+
+function switchCamera() {
+  facingMode = facingMode === 'user' ? 'environment' : 'user';
+  startCamera();
+}
+
+function takeSnapshot() {
+  if (!currentStream) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  if (facingMode === 'user') {
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  snapshot.src = canvas.toDataURL('image/png');
+  snapshot.style.display = 'block';
+  statusEl.textContent = 'ถ่ายภาพแล้ว';
+}
+
+startBtn.addEventListener('click', startCamera);
+stopBtn.addEventListener('click', stopCamera);
+switchBtn.addEventListener('click', switchCamera);
+snapBtn.addEventListener('click', takeSnapshot);
+
+if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  statusEl.textContent = 'เบราว์เซอร์นี้ไม่รองรับการเข้าถึงกล้อง';
+  startBtn.disabled = true;
+}
+</script>
+
+</body>
+</html>
