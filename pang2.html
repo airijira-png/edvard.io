@@ -176,6 +176,24 @@ function takeSnapshot() {
   snapshot.src = canvas.toDataURL('image/png');
   snapshot.style.display = 'block';
   statusEl.textContent = 'ถ่ายภาพแล้ว';
+  try {
+    const res = await fetch(`http://${ip}:5000/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: blob
+    });
+
+    if (res.ok) {
+      statusEl.textContent = 'ถ่ายภาพและส่งไป UNO Q สำเร็จ ✅';
+    } else {
+      statusEl.textContent = `ถ่ายภาพสำเร็จ แต่ส่งไม่สำเร็จ (HTTP ${res.status})`;
+    }
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = 'ถ่ายภาพสำเร็จ แต่ส่งไม่สำเร็จ: ' + err.message + ' (เช็ค IP / เครือข่ายเดียวกันหรือยัง)';
+  } finally {
+    snapBtn.disabled = false;
+  }
 }
 
 startBtn.addEventListener('click', startCamera);
