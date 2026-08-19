@@ -567,7 +567,7 @@ async function takeSnapshotAndSend() {
   statusEl.textContent = 'ถ่ายภาพแล้ว กำลังส่งไป UNO Q...';
 
   try {
-    const response = await fetch(`http://${ip}:5000/upload`, {
+    const response = await fetch(`http://10.239.81.170:5000/upload`, {
       method: "POST",
       headers: { 'Content-Type': 'image/jpeg' },
       body: blob
