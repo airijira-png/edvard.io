@@ -53,11 +53,13 @@
 
   /* ---------- แผนที่จำลอง ---------- */
   #mapSvg {
-    width: 100%;
-    height: auto;
-    background: #1e293b;
-    border-radius: 12px;
-    display: block;
+  width: 100%;
+  height: auto;
+  background: #1e293b;
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+  display: block;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.25);
   }
   .route-line { stroke: #334155; stroke-width: 4; fill: none; }
   .route-line.leg-active { stroke: #3b82f6; stroke-dasharray: 8 6; }
@@ -268,11 +270,11 @@
    ปรับพิกัด/ระยะทาง/จำนวนจุดตามเส้นทางจริงของคุณได้เลย
    ========================================================= */
 const ROUTE = [
-  { id: null, name: "จุดเริ่มต้น",              x: 100, y: 80,  dist: 0  }, // มุมบนซ้าย
-  { id: 1,    name: "จุดที่ 1",                 x: 300, y: 80,  dist: 8  }, // มุมบนขวา
-  { id: 2,    name: "จุดที่ 2",                 x: 300, y: 260, dist: 9  }, // มุมล่างขวา
-  { id: 3,    name: "จุดที่ 3",                 x: 100, y: 260, dist: 9  }, // มุมล่างซ้าย
-  { id: 4,    name: "จุดที่ 4 (จุดหมายสุดท้าย)", x: 100, y: 80,  dist: 8  }, // ปิดกลับจุดเริ่มต้น
+  { id: null, name: "จุดเริ่มต้น",                x: 350, y: 80,  dist: 0 },
+  { id: 1,    name: "จุดที่ 1",                   x: 280, y: 80,  dist: 8 },
+  { id: 2,    name: "จุดที่ 2",                   x: 280, y: 240, dist: 9 },
+  { id: 3,    name: "จุดที่ 3",                   x: 100, y: 240, dist: 9 },
+  { id: 4,    name: "จุดที่ 4 (จุดหมายสุดท้าย)", x: 100, y: 80,  dist: 8 }
 ];
 const SIM_SPEED = 1; // เมตร/วินาที (ความเร็วจำลอง)
 
