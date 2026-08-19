@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Camara</title>
+<title>นำทาง + สแกน ArUco</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -13,104 +13,475 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: #f1f5f9;
     padding: 20px;
   }
-  h1 { font-size: 1.4rem; margin-bottom: 16px; }
-  .video-wrap {
+  h1 { font-size: 1.3rem; margin: 6px 0 16px; text-align: center; }
+  h2 { font-size: 1rem; margin: 0 0 10px; color: #cbd5e1; }
+
+  .panel {
     width: 100%;
     max-width: 480px;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    position: relative;
+  }
+
+  /* ---------- ล็อคแผนที่ ---------- */
+  #mapLockOverlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+    padding: 40px 16px;
+    background: #1e293b;
+    border-radius: 12px;
+    border: 1px dashed #334155;
+  }
+  #mapLockOverlay .lock-icon { font-size: 2.2rem; }
+  #mapLockOverlay .lock-text { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; }
+  #mapLockOverlay .lock-hint { color: #60a5fa; font-size: 0.85rem; font-weight: 600; }
+
+  #mapContent { display: none; }
+
+  /* ---------- แผนที่จำลอง ---------- */
+  #mapSvg {
+    width: 100%;
+    height: auto;
+    background: #1e293b;
+    border-radius: 12px;
+    display: block;
+  }
+  .route-line { stroke: #334155; stroke-width: 4; fill: none; }
+  .route-line.leg-active { stroke: #3b82f6; stroke-dasharray: 8 6; }
+  .route-line.leg-done { stroke: #22c55e; }
+  .wp-circle { stroke-width: 3; }
+  .wp-label { font-size: 13px; fill: #f1f5f9; font-weight: 600; text-anchor: middle; }
+  .wp-pending { fill: #1e293b; stroke: #64748b; }
+  .wp-target { fill: #1e293b; stroke: #3b82f6; animation: pulse 1.2s infinite; }
+  .wp-done { fill: #22c55e; stroke: #16a34a; }
+  .me-dot { fill: #ef4444; stroke: #fecaca; stroke-width: 2; }
+  @keyframes pulse {
+    0%   { stroke-width: 3; opacity: 1; }
+    50%  { stroke-width: 7; opacity: 0.6; }
+    100% { stroke-width: 3; opacity: 1; }
+  }
+
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+  .status-row b { color: #f1f5f9; font-size: 1rem; }
+
+  .progress-bar {
+    width: 100%;
+    height: 10px;
+    background: #1e293b;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg,#3b82f6,#22c55e);
+    width: 0%;
+    transition: width 0.2s linear;
+  }
+
+  .banner {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    text-align: center;
+  }
+  .banner.traveling { background: #1e3a5f; color: #93c5fd; }
+  .banner.arrived { background: #3b2f0f; color: #fbbf24; }
+  .banner.finished { background: #14532d; color: #86efac; }
+
+  #resetBtn {
+    margin-top: 12px;
+    width: 100%;
+    background: #374151;
+    color: #f1f5f9;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  #resetBtn:hover { background: #4b5563; }
+
+  /* ---------- กล้อง ---------- */
+  .video-wrap {
+    width: 100%;
     aspect-ratio: 4/3;
     background: #1e293b;
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
   }
-  video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1);
-  }
-  .placeholder { color: #64748b; font-size: 0.95rem; text-align: center; padding: 20px; }
-  .controls {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+  video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  .placeholder { color: #64748b; font-size: 0.9rem; text-align: center; padding: 20px; }
+
+  .controls { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
   button {
-    background: #3b82f6;
-    color: white;
-    border: none;
-    padding: 12px 22px;
-    border-radius: 10px;
-    font-size: 0.95rem;
-    cursor: pointer;
+    background: #3b82f6; color: white; border: none;
+    padding: 11px 18px; border-radius: 10px; font-size: 0.88rem; cursor: pointer;
     transition: background 0.15s;
   }
   button:hover { background: #2563eb; }
   button:disabled { background: #475569; cursor: not-allowed; }
-  #stopBtn { background: #ef4444; }
-  #stopBtn:hover { background: #dc2626; }
-  #switchBtn { background: #64748b; }
-  #switchBtn:hover { background: #475569; }
-  #snapBtn { background: #22c55e; }
-  #snapBtn:hover { background: #16a34a; }
+  #stopBtn { background: #ef4444; } #stopBtn:hover { background: #dc2626; }
+  #switchBtn { background: #64748b; } #switchBtn:hover { background: #475569; }
+  #snapBtn { background: #22c55e; } #snapBtn:hover { background: #16a34a; }
+
   .status { margin-top: 12px; font-size: 0.85rem; color: #94a3b8; text-align: center; }
-  .config { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+  .config { margin-top: 10px; display: flex; gap: 8px; align-items: center; justify-content: center; }
   .config input {
-    background: #1e293b;
-    border: 1px solid #334155;
-    color: #f1f5f9;
-    padding: 8px 10px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    width: 220px;
+    background: #1e293b; border: 1px solid #334155; color: #f1f5f9;
+    padding: 8px 10px; border-radius: 8px; font-size: 0.85rem; width: 200px;
   }
+
   canvas { display: none; }
-  #snapshot {
-    display: none;
-    margin-top: 16px;
-    max-width: 100%;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  #snapshot { display: none; margin-top: 14px; max-width: 100%; border-radius: 12px; }
+
+  .result-box {
+    display: none; margin-top: 14px; background: #1e293b; border: 1px solid #334155;
+    border-radius: 12px; padding: 12px 18px; text-align: center;
+  }
+  .result-box .label { font-size: 0.78rem; color: #94a3b8; margin-bottom: 4px; }
+  .result-box .aruco-id { font-size: 1.8rem; font-weight: 700; color: #22c55e; }
+  .result-box .aruco-id.error { color: #ef4444; font-size: 1rem; }
+
+  #rawJson {
+    display: none; margin-top: 10px; background: #0b1220; border: 1px solid #334155;
+    border-radius: 10px; padding: 10px 14px; font-size: 0.78rem; color: #94a3b8;
+    white-space: pre-wrap; word-break: break-all; text-align: left;
+  }
+
+  #scanWarning {
+    display: none; margin-top: 10px; background: #3b1d1d; color: #fca5a5;
+    border-radius: 10px; padding: 10px 14px; font-size: 0.82rem; text-align: center;
+  }
+
+  #unlockBanner {
+    display: none; margin-top: 10px; background: #14532d; color: #86efac;
+    border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; text-align: center;
   }
 </style>
 </head>
 <body>
 
-<h1>📷 เปิดกล้อง</h1>
+<h1>🗺️ นำทาง (จำลอง) + 📷 สแกน ArUco</h1>
 
-<div class="video-wrap">
-  <video id="video" autoplay playsinline></video>
-  <div id="placeholder" class="placeholder">กดปุ่ม "เปิดกล้อง" เพื่อเริ่มใช้งาน</div>
+<!-- ===== กล้อง + ส่งภาพสแกน ArUco (ทำก่อน) ===== -->
+<div class="panel">
+  <h2> สแกน ArUco ที่จุดเริ่มต้น</h2>
+
+  <div class="video-wrap">
+    <video id="video" autoplay playsinline></video>
+    <div id="placeholder" class="placeholder">กดปุ่ม "เปิดกล้อง" เพื่อเริ่มใช้งาน</div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn">เปิดกล้อง</button>
+    <button id="stopBtn" disabled>ปิดกล้อง</button>
+    <button id="switchBtn" disabled>สลับกล้อง</button>
+    <button id="snapBtn" disabled>ถ่ายภาพ &amp; ส่งไป UNO Q</button>
+  </div>
+
+  <div class="config">
+    <label for="uno-ip" style="font-size:0.85rem;color:#94a3b8;">IP UNO Q:</label>
+    <input type="text" id="uno-ip" placeholder="เช่น 10.239.81.170" value="10.239.81.170">
+  </div>
+
+  <div class="status" id="status"></div>
+  <div id="scanWarning"></div>
+  <div id="unlockBanner"></div>
+
+  <div class="result-box" id="resultBox">
+    <div class="label">ArUco ID ที่ตรวจพบ</div>
+    <div class="aruco-id" id="arucoId">-</div>
+  </div>
+
+  <pre id="rawJson"></pre>
+
+  <canvas id="canvas"></canvas>
+  <img id="snapshot" alt="ภาพที่ถ่าย">
 </div>
 
-<div class="controls">
-  <button id="startBtn">เปิดกล้อง</button>
-  <button id="stopBtn" disabled>ปิดกล้อง</button>
-  <button id="switchBtn" disabled>สลับกล้อง</button>
-  <button id="snapBtn" disabled>ถ่ายภาพ &amp; ส่งไป UNO Q</button>
+<!-- ===== แผนที่ + สถานะเส้นทาง (ล็อคไว้จนกว่าจะสแกนจุดที่ 1) ===== -->
+<div class="panel">
+  <h2>2) แผนที่จำลอง</h2>
+
+  <div id="mapLockOverlay">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-text">แผนที่จะปรากฏก็ต่อเมื่อคุณสแกน<br>ArUco ID 1 ที่จุดเริ่มต้นสำเร็จ</div>
+    <div class="lock-hint">👆 ใช้กล้องด้านบนเพื่อสแกน</div>
+  </div>
+
+  <div id="mapContent">
+    <svg id="mapSvg" viewBox="0 0 400 320"></svg>
+
+    <div class="status-row">
+      <span>จุดหมายถัดไป</span>
+      <b id="targetName">-</b>
+    </div>
+    <div class="status-row">
+      <span>ระยะทางเหลือโดยประมาณ</span>
+      <b id="remainingDist">- ม.</b>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div class="banner" id="banner">กำลังเริ่มต้นเส้นทาง...</div>
+
+    <button id="resetBtn">🔄 รีเซ็ตเส้นทาง (ต้องสแกนจุดที่ 1 ใหม่)</button>
+  </div>
 </div>
-
-<div class="config">
-  <label for="uno-ip" style="font-size:0.85rem;color:#94a3b8;">IP UNO Q:</label>
-  <input type="text" id="uno-ip" placeholder="เช่น 192.168.1.50" value="192.168.1.50">
-</div>
-
-<div class="status" id="status"></div>
-
-<canvas id="canvas"></canvas>
-<img id="snapshot" alt="ภาพที่ถ่าย">
 
 <script>
+/* =========================================================
+   ส่วนที่ 1: เส้นทางจำลอง (waypoint) - รูปทรงสี่เหลี่ยมจัตุรัส
+   - id: ArUco ID ที่ต้องสแกนเพื่อ "ยืนยัน" ว่ามาถึงจุดนี้
+   - dist: ระยะทางจำลอง (เมตร) จากจุดก่อนหน้ามาจุดนี้
+   - x,y: ตำแหน่งบนแผนที่ SVG (viewBox 400x320)
+   จุดเริ่มต้น = มุมบนซ้าย, วนตามเข็มนาฬิกาเป็นสี่เหลี่ยม แล้วปิดกลับมาจุดเดิม
+   ปรับพิกัด/ระยะทาง/จำนวนจุดตามเส้นทางจริงของคุณได้เลย
+   ========================================================= */
+const ROUTE = [
+  { id: null, name: "จุดเริ่มต้น",              x: 100, y: 80,  dist: 0  }, // มุมบนซ้าย
+  { id: 1,    name: "จุดที่ 1",                 x: 300, y: 80,  dist: 8  }, // มุมบนขวา
+  { id: 2,    name: "จุดที่ 2",                 x: 300, y: 260, dist: 9  }, // มุมล่างขวา
+  { id: 3,    name: "จุดที่ 3",                 x: 100, y: 260, dist: 9  }, // มุมล่างซ้าย
+  { id: 4,    name: "จุดที่ 4 (จุดหมายสุดท้าย)", x: 100, y: 80,  dist: 8  }, // ปิดกลับจุดเริ่มต้น
+];
+const SIM_SPEED = 1; // เมตร/วินาที (ความเร็วจำลอง)
+
+let currentIndex = 0; // waypoint ที่ "อยู่แล้ว"
+let targetIndex  = 1; // waypoint ที่ "กำลังมุ่งหน้าไป"
+let remaining    = ROUTE[targetIndex].dist;
+let routeStatus  = 'traveling'; // 'traveling' | 'arrived' | 'finished'
+let simTimer     = null;
+let mapUnlocked  = false; // ต้องสแกน ArUco ID 1 ก่อนถึงจะเป็น true
+
+const svg = document.getElementById('mapSvg');
+const targetNameEl = document.getElementById('targetName');
+const remainingDistEl = document.getElementById('remainingDist');
+const progressFillEl = document.getElementById('progressFill');
+const bannerEl = document.getElementById('banner');
+const scanWarningEl = document.getElementById('scanWarning');
+const unlockBannerEl = document.getElementById('unlockBanner');
+const mapLockOverlayEl = document.getElementById('mapLockOverlay');
+const mapContentEl = document.getElementById('mapContent');
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+function drawMapSkeleton() {
+  svg.innerHTML = '';
+  // เส้นเชื่อมระหว่างจุด
+  for (let i = 1; i < ROUTE.length; i++) {
+    const a = ROUTE[i - 1], b = ROUTE[i];
+    const line = svgEl('line', {
+      x1: a.x, y1: a.y, x2: b.x, y2: b.y,
+      class: 'route-line', id: `leg-${i}`
+    });
+    svg.appendChild(line);
+  }
+  // จุด waypoint
+  ROUTE.forEach((wp, i) => {
+    if (i === 0) return; // จุดเริ่มต้นไม่ต้องวาดวง
+    const circle = svgEl('circle', { cx: wp.x, cy: wp.y, r: 14, class: 'wp-circle wp-pending', id: `wp-${i}` });
+    svg.appendChild(circle);
+    const label = svgEl('text', { x: wp.x, y: wp.y + 5, class: 'wp-label' });
+    label.textContent = i;
+    svg.appendChild(label);
+  });
+  // จุดตำแหน่งปัจจุบัน (สีแดง)
+  const me = svgEl('circle', { cx: ROUTE[currentIndex].x, cy: ROUTE[currentIndex].y, r: 9, class: 'me-dot', id: 'me-dot' });
+  svg.appendChild(me);
+}
+
+function renderLegsAndWaypoints() {
+  for (let i = 1; i < ROUTE.length; i++) {
+    const leg = document.getElementById(`leg-${i}`);
+    leg.classList.remove('leg-active', 'leg-done');
+    if (i < targetIndex) leg.classList.add('leg-done');
+    else if (i === targetIndex) leg.classList.add('leg-active');
+
+    const wp = document.getElementById(`wp-${i}`);
+    wp.classList.remove('wp-pending', 'wp-target', 'wp-done');
+    if (i < targetIndex) wp.classList.add('wp-done');
+    else if (i === targetIndex && routeStatus !== 'finished') wp.classList.add('wp-target');
+    else wp.classList.add('wp-pending');
+  }
+}
+
+function updateMePosition() {
+  const me = document.getElementById('me-dot');
+  const from = ROUTE[currentIndex];
+  const to = ROUTE[targetIndex] || from;
+  const legDist = to.dist || 1;
+  const progress = routeStatus === 'finished' ? 1 : Math.min(1, 1 - (remaining / legDist));
+  const x = from.x + (to.x - from.x) * progress;
+  const y = from.y + (to.y - from.y) * progress;
+  me.setAttribute('cx', x);
+  me.setAttribute('cy', y);
+}
+
+function updateStatusUI() {
+  if (routeStatus === 'finished') {
+    targetNameEl.textContent = 'ถึงจุดหมายสุดท้ายแล้ว';
+    remainingDistEl.textContent = '0 ม.';
+    progressFillEl.style.width = '100%';
+    bannerEl.className = 'banner finished';
+    bannerEl.textContent = '🎉 เดินทางถึงจุดหมายสุดท้ายเรียบร้อยแล้ว';
+    return;
+  }
+
+  const target = ROUTE[targetIndex];
+  targetNameEl.textContent = `${target.name} (ArUco ID: ${target.id})`;
+  remainingDistEl.textContent = `${remaining.toFixed(1)} ม.`;
+
+  const legDist = target.dist || 1;
+  const pct = Math.min(100, (1 - remaining / legDist) * 100);
+  progressFillEl.style.width = pct + '%';
+
+  if (routeStatus === 'arrived') {
+    bannerEl.className = 'banner arrived';
+    bannerEl.textContent = `📍 ถึง ${target.name} แล้ว — สแกน ArUco ID ${target.id} เพื่อไปจุดต่อไป`;
+  } else {
+    bannerEl.className = 'banner traveling';
+    bannerEl.textContent = `🚶 กำลังมุ่งหน้าไป ${target.name}...`;
+  }
+}
+
+function startLeg() {
+  clearInterval(simTimer);
+  if (targetIndex >= ROUTE.length) {
+    routeStatus = 'finished';
+    updateStatusUI();
+    updateMePosition();
+    return;
+  }
+  remaining = ROUTE[targetIndex].dist;
+  routeStatus = 'traveling';
+  renderLegsAndWaypoints();
+  updateStatusUI();
+  updateMePosition();
+
+  simTimer = setInterval(() => {
+    remaining = Math.max(0, remaining - SIM_SPEED * 0.2);
+    if (remaining <= 0) {
+      remaining = 0;
+      routeStatus = 'arrived';
+      clearInterval(simTimer);
+    }
+    updateStatusUI();
+    updateMePosition();
+  }, 200);
+}
+
+// ปลดล็อกแผนที่หลังสแกน ArUco ID 1 สำเร็จที่จุดเริ่มต้น
+function unlockMap() {
+  mapUnlocked = true;
+  mapLockOverlayEl.style.display = 'none';
+  mapContentEl.style.display = 'block';
+
+  unlockBannerEl.style.display = 'block';
+  unlockBannerEl.textContent = '✅ ปลดล็อกแผนที่แล้ว! เริ่มนำทางไปจุดถัดไป';
+
+  // ถือว่าตอนนี้อยู่ที่จุดที่ 1 แล้ว มุ่งหน้าไปจุดที่ 2 ต่อ
+  currentIndex = 1;
+  targetIndex = 2;
+
+  drawMapSkeleton();
+  renderLegsAndWaypoints();
+  startLeg();
+}
+
+// เรียกเมื่อสแกน ArUco ได้ id ใดๆ มา
+function handleScannedId(scannedId) {
+  scanWarningEl.style.display = 'none';
+
+  // ---- ขั้นตอนก่อนปลดล็อก: ต้องสแกน ArUco ID 1 ก่อนเท่านั้น ----
+  if (!mapUnlocked) {
+    if (scannedId === 1) {
+      unlockMap();
+    } else {
+      scanWarningEl.style.display = 'block';
+      scanWarningEl.textContent = `ต้องสแกน ArUco ID 1 ที่จุดเริ่มต้นก่อน (สแกนได้ ID ${scannedId})`;
+    }
+    return;
+  }
+
+  // ---- หลังปลดล็อกแล้ว: ตรวจสอบกับจุดหมายปัจจุบันตามปกติ ----
+  if (routeStatus === 'finished') {
+    scanWarningEl.style.display = 'block';
+    scanWarningEl.textContent = 'เดินทางถึงจุดหมายสุดท้ายแล้ว ไม่ต้องสแกนเพิ่ม';
+    return;
+  }
+
+  const target = ROUTE[targetIndex];
+  if (scannedId === target.id) {
+    // ตรงกับจุดหมาย -> เดินหน้าต่อไปจุดถัดไป
+    clearInterval(simTimer);
+    currentIndex = targetIndex;
+    targetIndex += 1;
+    renderLegsAndWaypoints();
+    startLeg();
+  } else {
+    scanWarningEl.style.display = 'block';
+    scanWarningEl.textContent = `ArUco ID ${scannedId} ไม่ตรงกับจุดหมายถัดไป (ต้องการ ID ${target.id})`;
+  }
+}
+
+// รีเซ็ตเส้นทาง -> กลับไปสถานะล็อค ต้องสแกนจุดที่ 1 ใหม่
+function resetRoute() {
+  clearInterval(simTimer);
+  currentIndex = 0;
+  targetIndex = 1;
+  routeStatus = 'traveling';
+  mapUnlocked = false;
+
+  scanWarningEl.style.display = 'none';
+  unlockBannerEl.style.display = 'none';
+  mapContentEl.style.display = 'none';
+  mapLockOverlayEl.style.display = 'flex';
+
+  resultBox.style.display = 'none';
+  rawJsonEl.style.display = 'none';
+  snapshot.style.display = 'none';
+  statusEl.textContent = 'รีเซ็ตแล้ว กรุณาสแกน ArUco ID 1 ใหม่';
+}
+
+document.getElementById('resetBtn').addEventListener('click', resetRoute);
+
+// ตั้งค่าเริ่มต้น: วาดโครงแผนที่ไว้ล่วงหน้า (แต่ยังไม่โชว์ จนกว่าจะปลดล็อก)
+drawMapSkeleton();
+renderLegsAndWaypoints();
+
+
+/* =========================================================
+   ส่วนที่ 2: กล้อง + ส่งภาพไป UNO Q + รับผล ArUco
+   ========================================================= */
 const video = document.getElementById('video');
 const placeholder = document.getElementById('placeholder');
 const startBtn = document.getElementById('startBtn');
@@ -121,22 +492,18 @@ const statusEl = document.getElementById('status');
 const canvas = document.getElementById('canvas');
 const snapshot = document.getElementById('snapshot');
 const unoIpInput = document.getElementById('uno-ip');
+const resultBox = document.getElementById('resultBox');
+const arucoIdEl = document.getElementById('arucoId');
+const rawJsonEl = document.getElementById('rawJson');
 
 let currentStream = null;
-let facingMode = 'user'; // 'user' = กล้องหน้า, 'environment' = กล้องหลัง
-let lastBlob = null; // เก็บ blob ของภาพล่าสุดไว้ส่ง
+let facingMode = 'user';
 
 async function startCamera() {
   statusEl.textContent = 'กำลังขอสิทธิ์เข้าถึงกล้อง...';
   try {
-    if (currentStream) {
-      currentStream.getTracks().forEach(t => t.stop());
-    }
-    const constraints = {
-      video: { facingMode: facingMode },
-      audio: false
-    };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
     currentStream = stream;
     video.srcObject = stream;
     video.style.display = 'block';
@@ -149,22 +516,15 @@ async function startCamera() {
   } catch (err) {
     console.error(err);
     let msg = 'เปิดกล้องไม่สำเร็จ: ';
-    if (err.name === 'NotAllowedError') {
-      msg += 'ผู้ใช้ไม่อนุญาตให้เข้าถึงกล้อง (กรุณาอนุญาตสิทธิ์ในเบราว์เซอร์)';
-    } else if (err.name === 'NotFoundError') {
-      msg += 'ไม่พบอุปกรณ์กล้อง';
-    } else {
-      msg += err.message;
-    }
+    if (err.name === 'NotAllowedError') msg += 'ผู้ใช้ไม่อนุญาตให้เข้าถึงกล้อง';
+    else if (err.name === 'NotFoundError') msg += 'ไม่พบอุปกรณ์กล้อง';
+    else msg += err.message;
     statusEl.textContent = msg;
   }
 }
 
 function stopCamera() {
-  if (currentStream) {
-    currentStream.getTracks().forEach(t => t.stop());
-    currentStream = null;
-  }
+  if (currentStream) { currentStream.getTracks().forEach(t => t.stop()); currentStream = null; }
   video.srcObject = null;
   video.style.display = 'none';
   placeholder.style.display = 'block';
@@ -181,55 +541,68 @@ function switchCamera() {
 }
 
 function captureBlob() {
-  // ถ่ายภาพจาก video ปัจจุบัน คืนค่าเป็น Promise<Blob>
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
-  if (facingMode === 'user') {
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-  }
+  if (facingMode === 'user') { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   snapshot.src = canvas.toDataURL('image/jpeg', 0.85);
   snapshot.style.display = 'block';
-
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.85);
-  });
+  return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.85));
 }
 
 async function takeSnapshotAndSend() {
   if (!currentStream) return;
-
   const ip = unoIpInput.value.trim();
-  if (!ip) {
-    statusEl.textContent = 'กรุณากรอก IP ของ UNO Q ก่อนถ่ายภาพ';
-    return;
-  }
+  if (!ip) { statusEl.textContent = 'กรุณากรอก IP ของ UNO Q ก่อนถ่ายภาพ'; return; }
 
   snapBtn.disabled = true;
+  resultBox.style.display = 'none';
+  rawJsonEl.style.display = 'none';
+  scanWarningEl.style.display = 'none';
+  unlockBannerEl.style.display = 'none';
   statusEl.textContent = 'กำลังถ่ายภาพ...';
 
   const blob = await captureBlob();
-  lastBlob = blob;
-
   statusEl.textContent = 'ถ่ายภาพแล้ว กำลังส่งไป UNO Q...';
 
   try {
-    const res = await fetch(`http://${ip}:5000/upload`, {
-      method: 'POST',
+    const response = await fetch(`http://${ip}:5000/upload`, {
+      method: "POST",
       headers: { 'Content-Type': 'image/jpeg' },
       body: blob
     });
 
-    if (res.ok) {
-      statusEl.textContent = 'ถ่ายภาพและส่งไป UNO Q สำเร็จ ✅';
-    } else {
-      statusEl.textContent = `ถ่ายภาพสำเร็จ แต่ส่งไม่สำเร็จ (HTTP ${res.status})`;
+    if (!response.ok) {
+      statusEl.textContent = `ส่งภาพสำเร็จ แต่เซิร์ฟเวอร์ตอบ HTTP ${response.status}`;
+      return;
     }
+
+    // ตัวอย่างข้อมูลที่ UNO Q ส่งกลับ:
+    // เจอ    -> { "found": true,  "id": 1 }
+    // ไม่เจอ -> { "found": false, "id": null }
+    const result = await response.json();
+    console.log(result);
+    console.log("ArUco ID =", result.id);
+
+    rawJsonEl.textContent = JSON.stringify(result, null, 2);
+    rawJsonEl.style.display = 'block';
+
+    resultBox.style.display = 'block';
+    if (result.found === true) {
+      arucoIdEl.textContent = result.id;
+      arucoIdEl.classList.remove('error');
+      statusEl.textContent = 'ตรวจพบ ArUco marker สำเร็จ ✅';
+      handleScannedId(result.id); // <-- ส่งผลไปตรวจสอบ/ปลดล็อก/อัปเดตเส้นทาง
+    } else {
+      arucoIdEl.textContent = 'ไม่พบ marker';
+      arucoIdEl.classList.add('error');
+      statusEl.textContent = 'ส่งภาพสำเร็จ แต่ไม่พบ ArUco marker';
+    }
+
   } catch (err) {
     console.error(err);
-    statusEl.textContent = 'ถ่ายภาพสำเร็จ แต่ส่งไม่สำเร็จ: ' + err.message + ' (เช็ค IP / เครือข่ายเดียวกันหรือยัง)';
+    statusEl.textContent = 'ส่งภาพไม่สำเร็จ: ' + err.message + ' (เช็ค IP / เครือข่ายเดียวกันหรือยัง)';
   } finally {
     snapBtn.disabled = false;
   }
