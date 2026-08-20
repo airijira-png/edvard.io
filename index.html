@@ -3,85 +3,310 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dob</title>
+<title>DOB - Digital Operations Beacon</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai", sans-serif;
+    color: #1e1b16;
+  }
+
+  .page {
     min-height: 100vh;
     display: flex;
+    flex-wrap: wrap;
+  }
+
+  /* ---------------- ฝั่งซ้าย ---------------- */
+  .left {
+    flex: 1 1 480px;
+    min-width: 320px;
+    background: #ffffff;
+    padding: 40px 56px;
+    display: flex;
     flex-direction: column;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: #7c2d12;
+    letter-spacing: 1px;
+  }
+  .logo .mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #7c2d12;
+    display: flex;
     align-items: center;
     justify-content: center;
+    color: #fff;
+    font-size: 1rem;
+    font-family: Georgia, serif;
+  }
+  .logo .tagline {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #f1f5f9;
-    padding: 20px;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #a8825f;
+    margin-top: 2px;
   }
-  h1 {
-    font-size: 2rem;
-    text-align: center;
-    margin-bottom: 24px;
-    color: #1e293b;
+  .logo-block { display: flex; flex-direction: column; }
+
+  .hero {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 480px;
   }
-  .form-box {
-    background: white;
+  .hero h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 3.4rem;
+    line-height: 1.15;
+    color: #7c2d12;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+  .hero .sub {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.5rem;
+    color: #4b3a2c;
+    margin-bottom: 30px;
+  }
+  .hero .desc {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #6b5c4d;
+    margin-bottom: 8px;
+  }
+
+  .footer-note {
+    font-size: 0.78rem;
+    color: #a8a29e;
+    padding-top: 24px;
+  }
+
+  /* ---------------- ฝั่งขวา ---------------- */
+  .right {
+    flex: 1 1 480px;
+    min-width: 320px;
+    background: linear-gradient(160deg, #efe4d8 0%, #d9c4a8 45%, #b98a5a 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    overflow: hidden;
+  }
+  .right::before, .right::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+  }
+  .right::before { width: 340px; height: 340px; top: -80px; right: -80px; }
+  .right::after { width: 220px; height: 220px; bottom: -60px; left: -40px; background: rgba(124,45,18,0.10); }
+
+  .form-card {
+    position: relative;
+    z-index: 2;
+    background: #ffffff;
     width: 100%;
     max-width: 400px;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    padding: 34px 32px;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(64, 36, 12, 0.25);
+  }
+  .form-card h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.5rem;
+    color: #7c2d12;
+    margin-bottom: 22px;
+    text-align: center;
   }
   label {
     display: block;
     margin-bottom: 6px;
-    font-size: 0.9rem;
-    color: #334155;
+    font-size: 0.88rem;
+    color: #4b3a2c;
+    font-weight: 600;
   }
-  input, textarea {
+  input {
     width: 100%;
-    padding: 10px;
-    margin-bottom: 16px;
-    border: 1px solid #cbd5e1;
+    padding: 11px 12px;
+    margin-bottom: 6px;
+    border: 1px solid #e2d6c6;
+    background: #faf6f0;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    color: #1e1b16;
   }
-  a {
+  input:focus {
+    outline: none;
+    border-color: #b98a5a;
+    background: #fff;
+  }
+  .hint {
+    font-size: 0.75rem;
+    color: #a8825f;
+    margin-bottom: 16px;
+    min-height: 15px;
+  }
+  .submit-btn {
+    display: block;
     width: 100%;
-    padding: 12px;
-    background: #3b82f6;
-    color: white;
+    padding: 13px;
+    background: #7c2d12;
+    color: #fff;
     border: none;
     border-radius: 8px;
     font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    margin-top: 6px;
+    transition: background 0.15s;
   }
-  button:hover { background: #2563eb; }
+  .submit-btn:hover { background: #5c2210; }
+
+  @media (max-width: 860px) {
+    .hero h1 { font-size: 2.5rem; }
+    .left, .right { padding: 32px 28px; }
+  }
 </style>
 </head>
 <body>
-<h1>DOB</h1>
 
-<h1>กรอกข้อมูล</h1>
+<div class="page">
 
-<div class="form-box">
-  <label for="name">ตึก</label>
-  <input type="text" id="name" placeholder="กรอกข้อมูล">
+  <!-- ========== ฝั่งซ้าย: โลโก้ + ข้อความ ========== -->
+  <div class="left">
+    <div class="logo">
+      <div class="mark">D</div>
+      <div class="logo-block">
+        <span>DOB</span>
+        <span class="tagline">Digital Operations Beacon</span>
+      </div>
+    </div>
 
-  <label for="email">แผนก</label>
-  <input type="email" id="email" placeholder="กรอกข้อมูล">
+    <div class="hero">
+      <h1>D.O.B</h1>
+      <div class="sub">Digital Operations Beacon</div>
+      <p class="desc">ระบบช่วยนำทางอัจฉริยะในโรงพยาบาล ที่เข้าใจง่าย ไปได้ถูกที่ รวดเร็ว ไม่หลงทาง</p>
+    </div>
 
-  <label for="message">ชั้น</label>
-  <input type="message" id="message" placeholder="กรอกข้อมูล">
-  
-  <a href="pang2.html">ส่งข้อมูล</a>
+    <div class="footer-note">© DOB — Digital Operations Beacon</div>
+  </div>
+
+  <!-- ========== ฝั่งขวา: ฟอร์ม ========== -->
+  <div class="right">
+    <div class="form-card">
+      <h2>กรอกข้อมูล</h2>
+
+      <label for="name">ตึก</label>
+      <input type="text" id="name" placeholder="กรอกข้อมูล">
+
+      <label for="email">แผนก</label>
+      <input type="text" id="email" placeholder="กรอกข้อมูล เช่น เด็ก, หัวใจ, ผ่าตัด ..." oninput="updateFloorOptions()">
+
+      <label for="message">ชั้น</label>
+      <input type="text" id="message" list="floorList" placeholder="พิมพ์แผนกก่อน แล้วเลือกชั้นที่ขึ้นมา">
+      <datalist id="floorList"></datalist>
+      <div class="hint" id="floorHint"></div>
+
+      <a href="pang2.html" class="submit-btn" onclick="submitForm()">ส่งข้อมูล</a>
+    </div>
+  </div>
+
 </div>
 
 <script>
+/* =========================================================
+   ฐานข้อมูล คำ(keyword) -> รายการชั้น/แผนกที่เกี่ยวข้อง
+   แก้ไข/เพิ่มเติมรายการได้ตามชั้น-แผนกจริงของสถานที่คุณ
+   ========================================================= */
+const FLOOR_DB = [
+  { keywords: ["เด็ก", "กุมาร", "child", "เนอสเซอรี่", "ทารก"],
+    floors: ["ชั้น 3 ", ] },
+
+  { keywords: ["หัวใจ", "หลอดเลือด", "cardio", "หัวใจและหลอดเลือด"],
+    floors: ["ชั้น 5 ", ] },
+
+  { keywords: ["ผ่าตัด", "ศัลย", "surgery", "ห้องผ่าตัด"],
+    floors: ["ชั้น 2 - ",] },
+
+  { keywords: ["ฉุกเฉิน", "er", "อุบัติเหตุ", "emergency"],
+    floors: ["ชั้น 1 ",] },
+
+  { keywords: ["icu", "วิกฤต", "ผู้ป่วยหนัก"],
+    floors: ["ชั้น 4 ", ] },
+
+  { keywords: ["สูติ", "คลอด", "นรีเวช", "ตั้งครรภ์"],
+    floors: ["ชั้น 3 ", ] },
+
+  { keywords: ["ผู้สูงอายุ", "geriatric", "อายุรกรรม", "internal"],
+    floors: ["ชั้น 5 ", ] },
+
+  { keywords: ["จิตเวช", "จิตใจ", "psychiatric", "mental"],
+    floors: ["ชั้น 11 "] },
+
+  { keywords: ["มะเร็ง", "เคมีบำบัด", "oncology", "cancer"],
+    floors: ["ชั้น 12 "] },
+
+  { keywords: ["ตา", "หู", "คอ", "จมูก", "ent", "eye"],
+    floors: ["ชั้น 8 "] }
+];
+
+const ALL_FLOORS = [...new Set(FLOOR_DB.flatMap(item => item.floors))];
+
+function updateFloorOptions() {
+  const deptInput = document.getElementById('email').value.trim().toLowerCase();
+  const datalist = document.getElementById('floorList');
+  const hint = document.getElementById('floorHint');
+  datalist.innerHTML = '';
+
+  let matched = [];
+  if (deptInput.length > 0) {
+    FLOOR_DB.forEach(item => {
+      const isMatch = item.keywords.some(k => deptInput.includes(k.toLowerCase()) || k.toLowerCase().includes(deptInput));
+      if (isMatch) matched.push(...item.floors);
+    });
+    matched = [...new Set(matched)];
+  }
+
+  const list = matched.length > 0 ? matched : ALL_FLOORS;
+  list.forEach(floor => {
+    const opt = document.createElement('option');
+    opt.value = floor;
+    datalist.appendChild(opt);
+  });
+
+  if (deptInput.length > 0 && matched.length > 0) {
+    hint.textContent = `พบ ${matched.length} ชั้นที่เกี่ยวข้องกับ "${deptInput}"`;
+  } else if (deptInput.length > 0) {
+    hint.textContent = 'ไม่พบชั้นที่ตรงกับคำนี้ แสดงรายการชั้นทั้งหมดแทน';
+  } else {
+    hint.textContent = '';
+  }
+}
+
+updateFloorOptions();
+
 function submitForm() {
   const name = document.getElementById('name').value;
   const email = document.getElementById('email').value;
   const message = document.getElementById('message').value;
-  alert('ชื่อ: ' + name + '\nอีเมล: ' + email + '\nข้อความ: ' + message);
+  alert('ตึก: ' + name + '\nแผนก: ' + email + '\nชั้น: ' + message);
 }
 </script>
 </body>
