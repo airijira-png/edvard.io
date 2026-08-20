@@ -514,6 +514,14 @@ async function startCamera() {
     currentStream = stream;
     video.srcObject = stream;
     video.style.display = 'block';
+
+    // ✅ เพิ่มส่วนนี้ - toggle mirror ตามกล้องที่ใช้
+    if (facingMode === 'environment') {
+      video.classList.add('back-camera');   // กล้องหลัง ไม่ mirror
+    } else {
+      video.classList.remove('back-camera'); // กล้องหน้า mirror ตามเดิม
+    }
+
     placeholder.style.display = 'none';
     startBtn.disabled = true;
     stopBtn.disabled = false;
